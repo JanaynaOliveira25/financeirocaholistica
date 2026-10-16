@@ -84,6 +84,11 @@ input[type=password]:focus{border-color:var(--accent);outline:none;box-shadow:0 
 .ver-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.86rem}
 .ver-item .grow{flex:1;min-width:160px}
 .lock-ok{color:var(--inc);font-size:.85rem;font-weight:600;text-align:center}
+#recModal{background:rgba(40,25,35,.35);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+.rec-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1rem;font-weight:700;letter-spacing:.02em;text-align:center;padding:14px 10px;border:1px dashed var(--accent);border-radius:10px;background:var(--accent-soft);color:var(--ink);user-select:all;overflow-wrap:anywhere}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:.88rem;cursor:pointer}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
 .pw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
 @media (max-width:640px){.pw-grid{grid-template-columns:1fr}}
 [hidden]{display:none!important}
@@ -281,7 +286,9 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
       <div class="lock-ok" id="loginOk" hidden></div>
       <div class="lock-links"><button type="button" class="linkish" id="toSetup">Primeiro acesso? Criar conta</button><button type="button" class="linkish" id="forgotBtn">Esqueci a senha</button></div>
       <div id="forgotBox" class="stack" hidden>
-        <p class="note" style="margin:0">Por segurança, a senha não pode ser recuperada: é ela que abre os dados cifrados, e nem o Supabase consegue lê-los. Sem a senha, o caminho é criar uma conta nova com outro e-mail e restaurar um backup .json (informando a senha usada quando ele foi feito).</p>
+        <p class="note" style="margin:0">Informe o e-mail acima e peça o link. Ao abrir o link, você vai precisar da <b>chave de recuperação</b> que apareceu quando a conta foi criada. Com ela, você cria uma senha nova e mantém todos os dados.</p>
+        <button type="button" class="btn" id="forgotSend">Enviar link para redefinir a senha</button>
+        <div class="lock-ok" id="forgotOk" hidden></div>
       </div>
     </form>
 
@@ -302,6 +309,20 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
       <button class="btn primary" type="submit" id="migBtn">Abrir e enviar para a nuvem</button>
       <div class="lock-err" id="migErr" hidden></div>
       <div class="lock-links"><button type="button" class="linkish" id="migSkip"></button></div>
+    </form>
+
+    <form id="recForm" hidden novalidate>
+      <p class="note" style="margin:0">Para criar uma senha nova sem perder os dados, informe a chave de recuperação (formato XXXX-XXXX-XXXX-XXXX-XXXX-XXXX).</p>
+      <label class="field"><span>Chave de recuperação</span><input type="text" id="recCode" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+      <label class="field"><span>Nova senha (mínimo 8 caracteres)</span><input type="password" id="recPass" autocomplete="new-password"></label>
+      <label class="field"><span>Repita a nova senha</span><input type="password" id="recPass2" autocomplete="new-password"></label>
+      <button class="btn primary" type="submit" id="recBtn">Redefinir senha</button>
+      <div class="lock-err" id="recErr" hidden></div>
+      <div class="lock-links"><button type="button" class="linkish" id="recNoKey">Não tenho a chave de recuperação</button></div>
+      <div id="recNoKeyBox" class="stack" hidden>
+        <p class="note" style="margin:0">Sem a chave e sem a senha antiga, os lançamentos cifrados não podem ser abertos. Você pode definir a senha nova e começar do zero; se tiver um backup .json, restaure depois em Ajustes (com a senha ou a chave usada quando ele foi feito). As versões antigas continuam guardadas na nuvem e voltam a abrir se você lembrar a senha anterior.</p>
+        <button type="button" class="btn danger" id="recStartOver">Definir senha nova e começar do zero</button>
+      </div>
     </form>
 
     <div id="noCrypto" class="note" hidden>Este navegador não oferece a criptografia necessária. Abra o sistema pelo endereço https do GitHub Pages, num navegador atualizado.</div>
@@ -521,7 +542,7 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
         <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
           <button class="btn" id="bkRestoreText" type="button">Restaurar do texto</button>
         </div>
-        <label class="field" style="margin-top:10px"><span>Senha do backup (só se for diferente da senha atual)</span><input type="password" id="bkPass" autocomplete="off"></label>
+        <label class="field" style="margin-top:10px"><span>Senha ou chave de recuperação do backup (só se for diferente da atual)</span><input type="password" id="bkPass" autocomplete="off"></label>
         <p class="note" style="margin-bottom:0">Os dados já ficam na nuvem, mas um backup mensal em arquivo é uma segurança extra. O .json sai cifrado com a sua senha, então só abre com ela. A planilha .csv sai aberta, sem senha: guarde-a com cuidado.</p>
       </div>
 
@@ -534,7 +555,9 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
             <label class="field"><span>Repita a nova</span><input type="password" id="pwNew2" autocomplete="new-password"></label>
           </div>
           <div><button class="btn" id="pwChange" type="button">Alterar senha</button></div>
-          <p class="note" style="margin:0">O sistema bloqueia sozinho após 15 minutos sem uso. A senha não é guardada em lugar nenhum: ela gera a chave que cifra os dados (AES-256) e uma segunda chave, diferente, usada para entrar no Supabase. Assim, nem o Supabase conhece a senha.</p>
+          <p class="note" style="margin:0">O sistema bloqueia sozinho após 15 minutos sem uso. A senha não é guardada em lugar nenhum: ela abre a chave que cifra os dados (AES-256) e gera uma segunda chave, diferente, usada para entrar no Supabase. Assim, nem o Supabase conhece a senha.</p>
+          <div class="panel-head" style="margin:8px 0 0"><h3>Chave de recuperação</h3><button class="btn sm" id="recNew" type="button">Gerar nova chave</button></div>
+          <p class="small muted" style="margin:0">Use se perdeu a chave atual. A chave anterior deixa de valer para os dados atuais.</p>
           <div class="panel-head" style="margin:8px 0 0"><h3>Versões salvas na nuvem</h3><button class="btn sm" id="verLoad" type="button">Ver versões</button></div>
           <p class="small muted" style="margin:0">A nuvem guarda automaticamente as 60 versões anteriores. Restaure uma delas se algo for apagado por engano.</p>
           <div class="ver-list" id="verList"></div>
@@ -555,6 +578,18 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
     </div>
   </section>
 </main>
+</div>
+
+<div class="lock" id="recModal" hidden>
+  <div class="lock-card" role="dialog" aria-modal="true" aria-labelledby="recModalTitle">
+    <div class="lock-brand"><h1 id="recModalTitle" style="font-size:1.5rem">Chave de recuperação</h1>
+      <p>Guarde esta chave fora do sistema: anotada em papel, num gerenciador de senhas ou num arquivo pessoal. Ela é o único jeito de criar uma senha nova sem perder os dados.</p></div>
+    <div class="rec-code" id="recModalCode"></div>
+    <button type="button" class="btn" id="recModalCopy">Copiar chave</button>
+    <p class="small muted" style="margin:0">Ela não fica salva em lugar nenhum e não aparece de novo. Se perder, gere outra em Ajustes enquanto ainda souber a senha.</p>
+    <label class="check"><input type="checkbox" id="recModalOk"><span>Guardei a chave em local seguro</span></label>
+    <button type="button" class="btn primary" id="recModalDone" disabled>Continuar</button>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -638,14 +673,16 @@ const numToBR = v => (Math.round(v*100)/100).toFixed(2).replace(".",",");
 let state = {tx:[], limits:[], customCats:{}, brand:"", seeded:false};
 let ui = {tab:"lanc", mode:"mes", anchor:iso(new Date()), dConta:"", lMes:iso(new Date()).slice(0,7)};
 
-/* ---------- Cofre cifrado (PBKDF2 + AES-GCM) + Supabase ---------- */
+/* ---------- Cofre cifrado + Supabase ----------
+   Os lançamentos são cifrados com uma chave de dados aleatória (AES-256-GCM).
+   Essa chave fica guardada duas vezes, também cifrada: uma pela senha e outra pela chave de recuperação. */
 const SB_URL = "https://zzmgmjeazspoentmfnhh.supabase.co";
 const SB_KEY = "sb_publishable_4bss-8g0MlJ0PFLU_40jrw_R2DzqT-5";
 const VAULT_KEY = "caHolistica.cofre.v2";          // cofre local da versão anterior (migração)
 const CACHE_PREFIX = "caHolistica.nuvem.v3:";       // cópia cifrada local por conta
 const ITER = 310000, AUTH_ITER = 200000;
 const te = new TextEncoder(), td = new TextDecoder();
-let session = null; // {key, salt, iter, user, pass, uid, auth, versao}
+let session = null; // {user, pass, uid, auth, versao, raw, dek, wrapPw, wrapRec, syncedIds}
 let saveChain = Promise.resolve();
 function b64(buf){ const u=new Uint8Array(buf); let s=""; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
 function unb64(s){ const b=atob(s); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
@@ -661,11 +698,37 @@ async function authSecret(email, pass){
 }
 async function encryptObj(key, obj){ const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, te.encode(JSON.stringify(obj))); return {iv:b64(iv), ct:b64(ct)}; }
 async function decryptObj(key, iv, ct){ const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(iv)}, key, unb64(ct)); return JSON.parse(td.decode(pt)); }
-async function openEnvelope(env, pass){ const salt = unb64(env.salt); const key = (session && session.key && b64(session.salt)===env.salt && pass===session.pass) ? session.key : await deriveKey(pass, salt, env.iter||ITER); return {data: await decryptObj(key, env.iv, env.ct), key, salt, iter: env.iter||ITER}; }
+async function encBytes(key, bytes){ const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, bytes); return {iv:b64(iv), ct:b64(ct)}; }
+async function decBytes(key, iv, ct){ return new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(iv)}, key, unb64(ct))); }
+const recNorm = s => String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+async function wrapKey(raw, secret){ const salt = crypto.getRandomValues(new Uint8Array(16)); const k = await deriveKey(secret, salt, ITER); return Object.assign({salt:b64(salt), iter:ITER}, await encBytes(k, raw)); }
+async function unwrapKey(w, secret){ const k = await deriveKey(secret, unb64(w.salt), w.iter||ITER); return decBytes(k, w.iv, w.ct); }
+const importDek = raw => crypto.subtle.importKey("raw", raw, {name:"AES-GCM"}, false, ["encrypt","decrypt"]);
+function newRecoveryCode(){ const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; const r=crypto.getRandomValues(new Uint8Array(24)); let s=""; for(let i=0;i<24;i++){ s+=A[r[i]%32]; if(i%4===3 && i<23) s+="-"; } return s; }
+// Abre qualquer formato: v4 (chave de dados) ou v2/v3 (cifrado direto pela senha)
+async function openEnvelope(env, secret, viaRec){
+  if(env.v>=4){
+    const w = viaRec ? env.wrapRec : env.wrapPw; if(!w) throw new Error("sem chave");
+    const raw = await unwrapKey(w, viaRec ? recNorm(secret) : secret);
+    const dek = await importDek(raw);
+    return {data: await decryptObj(dek, env.iv, env.ct), raw, dek, wrapPw:env.wrapPw, wrapRec:env.wrapRec};
+  }
+  if(viaRec) throw new Error("sem chave de recuperação");
+  const key = await deriveKey(secret, unb64(env.salt), env.iter||ITER);
+  return {data: await decryptObj(key, env.iv, env.ct), legacy:true};
+}
+function adopt(o){ session.raw=o.raw; session.dek=o.dek; session.wrapPw=o.wrapPw; session.wrapRec=o.wrapRec; }
+async function newDek(){
+  const raw = crypto.getRandomValues(new Uint8Array(32));
+  session.raw = raw; session.dek = await importDek(raw);
+  session.wrapPw = await wrapKey(raw, session.pass);
+  const code = newRecoveryCode(); session.wrapRec = await wrapKey(raw, recNorm(code));
+  return code;
+}
 function readVault(){ try{ const v = JSON.parse(localStorage.getItem(VAULT_KEY)||"null"); return v && v.ct ? v : null; }catch(e){ return null; } }
 function readCache(uid){ try{ return JSON.parse(localStorage.getItem(CACHE_PREFIX+uid)||"null"); }catch(e){ return null; } }
 function writeCache(obj){ try{ localStorage.setItem(CACHE_PREFIX+session.uid, JSON.stringify(obj)); }catch(e){} }
-async function envelope(){ const {iv,ct} = await encryptObj(session.key, state); return {app:"ca-holistica-financas", v:3, cifrado:true, user:session.user, salt:b64(session.salt), iter:session.iter, iv, ct}; }
+async function envelope(){ const {iv,ct} = await encryptObj(session.dek, state); return {app:"ca-holistica-financas", v:4, cifrado:true, user:session.user, iv, ct, wrapPw:session.wrapPw, wrapRec:session.wrapRec}; }
 
 /* Supabase via REST (sem bibliotecas externas) */
 async function sb(path, opt={}){
@@ -720,7 +783,7 @@ async function pullRemote(fromConflict, localTx, known){
     if(!fromConflict && row.versao===session.versao) return;
     const o = await openEnvelope(row.envelope, session.pass);
     state = Object.assign({tx:[],limits:[],customCats:{},brand:"",seeded:true}, o.data);
-    session.key=o.key; session.salt=o.salt; session.iter=o.iter; session.versao=row.versao;
+    if(!o.legacy) adopt(o); session.versao=row.versao;
     writeCache({envelope:row.envelope, versao:row.versao, pendente:false});
     session.syncedIds = new Set(state.tx.map(t=>t.id));
     // lançamentos novos feitos aqui e ainda não enviados são mantidos
@@ -962,7 +1025,7 @@ function renderList(){
     const extra = t.tipo==="despesa" ? (t.natureza==="fixa"?" · fixa":" · variável") : t.tipo==="investimento" ? (t.mov==="resgate"?" · resgate":" · aporte") : "";
     return `<tr class="${t.id===editingId?"is-editing":""}">
       <td class="num">${brDate(t.data)}</td>
-      <td>${esc(t.desc||"—")}</td>
+      <td>${esc(t.desc||"")}</td>
       <td>${esc(t.categoria)}</td>
       <td><span class="pill ${t.conta}">${t.conta==="empresa"?"PJ":"PF"}</span></td>
       <td class="small muted">${tipoL[t.tipo]}${extra}</td>
@@ -1050,7 +1113,7 @@ const base = state.tx.filter(t=> ui.dConta ? t.conta===ui.dConta : t.categoria!=
     <div class="kpi" style="--k:var(--inc)"><span class="label">Receitas</span><span class="v num v-receita">${money(T.inc)}</span><span class="d">${delta(T.inc,P.inc,true)}</span></div>
     <div class="kpi" style="--k:var(--exp)"><span class="label">Despesas</span><span class="v num v-despesa">${money(T.exp)}</span><span class="d">${delta(T.exp,P.exp,false)}</span></div>
     <div class="kpi" style="--k:var(--accent)"><span class="label">Saldo do período</span><span class="v num" style="color:${res<0?"var(--crit)":"var(--ink)"}">${money(res)}</span><span class="d muted">Após investir: ${money(res-T.inv)}</span></div>
-    <div class="kpi" style="--k:var(--inv)"><span class="label">Investido no período</span><span class="v num v-investimento">${money(T.inv)}</span><span class="d muted">${T.inc?((T.inv/T.inc)*100).toFixed(0)+"% das receitas":"—"}${T.resgate?` · resgates ${money(T.resgate)}`:""}</span></div>`;
+    <div class="kpi" style="--k:var(--inv)"><span class="label">Investido no período</span><span class="v num v-investimento">${money(T.inv)}</span><span class="d muted">${T.inc?((T.inv/T.inc)*100).toFixed(0)+"% das receitas":"sem receitas no período"}${T.resgate?` · resgates ${money(T.resgate)}`:""}</span></div>`;
 
   renderAlerts(r, rp, cur, prev);
   renderChart(r, cur);
@@ -1242,8 +1305,9 @@ async function restore(text){
   try{ d = JSON.parse(text); }catch(e){ toast("Arquivo inválido: use um backup .json gerado por este sistema"); return; }
   if(d && d.cifrado){
     const pass = $("#bkPass").value || session.pass;
-    try{ const key = await deriveKey(pass, unb64(d.salt), d.iter||ITER); d = await decryptObj(key, d.iv, d.ct); }
-    catch(e){ toast("Senha do backup incorreta: informe-a no campo “Senha do backup”"); $("#bkPass").focus(); return; }
+    try{ d = (await openEnvelope(d, pass)).data; }
+    catch(e1){ try{ d = (await openEnvelope(d, pass, true)).data; }
+      catch(e2){ toast("Senha ou chave do backup incorreta: informe-a no campo do backup"); $("#bkPass").focus(); return; } }
   }
   try{
     if(!d || !Array.isArray(d.tx)) throw new Error();
@@ -1318,10 +1382,10 @@ drawFoliage();
 const LEGACY_KEY = STORE_KEY;
 function showLock(mode){
   $("#app").hidden = true; $("#lock").hidden = false;
-  ["loginForm","setupForm","migForm"].forEach(id=>$("#"+id).hidden = id!==mode+"Form");
+  ["loginForm","setupForm","migForm","recForm"].forEach(id=>$("#"+id).hidden = id!==mode+"Form");
   $("#noCrypto").hidden = mode!=="nocrypto";
-  $("#lockSub").textContent = mode==="setup" ? "Criar conta" : mode==="mig" ? "Trazer dados" : "Gestão financeira · pessoal & empresa";
-  setTimeout(()=>{ const f = {login:"#loginUser", setup:"#setupUser", mig:"#migPass"}[mode]; if(f) $(f).focus(); }, 50);
+  $("#lockSub").textContent = {setup:"Criar conta", mig:"Abrir dados", rec:"Redefinir senha"}[mode] || "Gestão financeira · pessoal & empresa";
+  setTimeout(()=>{ const f = {login:"#loginUser", setup:"#setupUser", mig:"#migPass", rec:"#recCode"}[mode]; if(f) $(f).focus(); }, 50);
 }
 $("#toSetup").addEventListener("click", ()=>showLock("setup"));
 $("#toLogin").addEventListener("click", ()=>showLock("login"));
@@ -1338,14 +1402,30 @@ function startApp(){
 function lockNow(){ saveChain.then(()=>{ session=null; location.reload(); }); }
 $("#logoutBtn").addEventListener("click", lockNow);
 let idleT;
-function armIdle(){ clearTimeout(idleT); idleT = setTimeout(()=>{ if(session) lockNow(); }, 15*60*1000); }
+function armIdle(){ clearTimeout(idleT); idleT = setTimeout(()=>{ if(session && $("#recModal").hidden) lockNow(); }, 15*60*1000); }
 ["click","keydown","touchstart","scroll"].forEach(ev=>document.addEventListener(ev, ()=>{ if(session) armIdle(); }, {passive:true}));
+
+/* Chave de recuperação: exibida uma única vez */
+function showRecoveryCode(code){
+  $("#recModalCode").textContent = code; $("#recModalOk").checked = false; $("#recModalDone").disabled = true;
+  $("#recModal").hidden = false; $("#recModalCopy").focus();
+}
+$("#recModalOk").addEventListener("change", e=>{ $("#recModalDone").disabled = !e.target.checked; });
+$("#recModalDone").addEventListener("click", ()=>{ $("#recModal").hidden = true; $("#recModalCode").textContent = ""; });
+$("#recModalCopy").addEventListener("click", ()=>{
+  const txt = $("#recModalCode").textContent;
+  const sel = ()=>{ const r=document.createRange(); r.selectNodeContents($("#recModalCode")); const s=getSelection(); s.removeAllRanges(); s.addRange(r); toast("Chave selecionada: copie com Ctrl+C"); };
+  try{ navigator.clipboard.writeText(txt).then(()=>toast("Chave copiada"), sel); }catch(e){ sel(); }
+});
+armConfirm($("#recNew"), "Clique de novo para gerar", async ()=>{
+  const code = newRecoveryCode(); session.wrapRec = await wrapKey(session.raw, recNorm(code));
+  save(); await saveChain; showRecoveryCode(code);
+});
 
 const lockErr = (id,msg)=>{ const e=$(id); e.textContent=msg; e.hidden=!msg; };
 const blankState = d => Object.assign({tx:[],limits:[],customCats:{},brand:"",seeded:true}, d||{});
-let fails = 0, blockedUntil = 0, migCtx = null;
-
-async function newKeyFor(pass){ const salt = crypto.getRandomValues(new Uint8Array(16)); session.salt = salt; session.iter = ITER; session.key = await deriveKey(pass, salt, ITER); }
+const showErr = msg => Object.assign(new Error(msg), {show:true});
+let fails = 0, blockedUntil = 0, migCtx = null, recAuth = null;
 
 // Depois de autenticar: decide de onde vêm os dados
 async function afterAuth(){
@@ -1353,25 +1433,27 @@ async function afterAuth(){
   try{ row = await remoteGet(); }catch(e){ if(e.net) offline = true; else throw e; }
   const cache = readCache(session.uid);
   if(offline){
-    if(!cache) throw Object.assign(new Error("Sem conexão com a nuvem e sem cópia neste aparelho. Tente com internet."), {show:true});
+    if(!cache) throw showErr("Sem conexão com a nuvem e sem cópia neste aparelho. Tente com internet.");
     const o = await openEnvelope(cache.envelope, session.pass);
-    Object.assign(session, {key:o.key, salt:o.salt, iter:o.iter, versao:cache.versao});
+    if(o.legacy) throw showErr("Conecte-se à internet para concluir a atualização da conta.");
+    adopt(o); session.versao = cache.versao;
     state = blankState(o.data); startApp(); setSync("off","Sem conexão: salvo no aparelho"); return;
   }
   if(row){
-    // cópia local com alterações ainda não enviadas tem prioridade se partiu da mesma versão
     const useLocal = cache && cache.pendente && cache.versao===row.versao;
     const env = useLocal ? cache.envelope : row.envelope;
-    try{
-      const o = await openEnvelope(env, session.pass);
-      Object.assign(session, {key:o.key, salt:o.salt, iter:o.iter, versao:row.versao});
-      state = blankState(o.data); session.syncedIds = new Set((useLocal?[]:state.tx).map(t=>t.id)); startApp();
-      if(useLocal) save(); else { writeCache({envelope:row.envelope, versao:row.versao, pendente:false}); setSync("ok","Salvo na nuvem"); }
-    }catch(e){
+    let o;
+    try{ o = await openEnvelope(env, session.pass); }
+    catch(e){
       migCtx = {kind:"old", env, versao:row.versao};
-      $("#migMsg").textContent = "Os dados na nuvem foram cifrados com uma senha anterior (a troca de senha não terminou de sincronizar). Informe a senha anterior para abri-los; eles serão cifrados de novo com a senha atual.";
-      $("#migLabel").textContent = "Senha anterior"; $("#migSkip").hidden = true; showLock("mig");
+      $("#migMsg").textContent = "Os dados na nuvem ainda estão com a senha anterior (a troca de senha não terminou de sincronizar). Informe a senha anterior ou a chave de recuperação para abri-los.";
+      $("#migLabel").textContent = "Senha anterior ou chave de recuperação"; $("#migSkip").hidden = true; showLock("mig");
+      return;
     }
+    session.versao = row.versao; state = blankState(o.data);
+    if(o.legacy){ const code = await newDek(); session.syncedIds = new Set(); startApp(); save(); showRecoveryCode(code); return; }
+    adopt(o); session.syncedIds = new Set((useLocal?[]:state.tx).map(t=>t.id)); startApp();
+    if(useLocal) save(); else { writeCache({envelope:row.envelope, versao:row.versao, pendente:false}); setSync("ok","Salvo na nuvem"); }
     return;
   }
   // Conta sem dados na nuvem: procurar dados da versão anterior neste aparelho
@@ -1381,36 +1463,41 @@ async function afterAuth(){
     try{ const o = await openEnvelope(v, session.pass); await finishMigration(o.data); return; }
     catch(e){
       migCtx = {kind:"legacy", env:v};
-      $("#migMsg").textContent = `Encontramos lançamentos salvos neste aparelho pela versão anterior (usuário “${v.user||"—"}”), com outra senha. Informe a senha antiga para trazê-los para a nuvem.`;
+      $("#migMsg").textContent = `Encontramos lançamentos salvos neste aparelho pela versão anterior (usuário “${v.user||"sem nome"}”), com outra senha. Informe a senha antiga para trazê-los para a nuvem.`;
       $("#migLabel").textContent = "Senha antiga deste aparelho"; $("#migSkip").textContent = "Começar sem esses dados"; $("#migSkip").hidden = false; showLock("mig");
       return;
     }
   }
   let legacy = null; try{ legacy = JSON.parse(localStorage.getItem(LEGACY_KEY)||"null"); }catch(e){}
   if(legacy && Array.isArray(legacy.tx)) return finishMigration(legacy);
-  await newKeyFor(session.pass); seed(); state.seeded = true; startApp(); toast("Conta pronta. Os lançamentos de exemplo podem ser apagados em Ajustes.");
+  const code = await newDek(); seed(); state.seeded = true; startApp(); showRecoveryCode(code);
+  toast("Conta pronta. Os lançamentos de exemplo podem ser apagados em Ajustes.");
 }
 async function finishMigration(data){
   state = blankState(data);
-  await newKeyFor(session.pass);
+  const code = await newDek();
   startApp();
   save(); await saveChain;
   try{ localStorage.setItem(VAULT_KEY+".migrado", new Date().toISOString()); }catch(e){}
   toast(`${state.tx.length} lançamentos deste aparelho enviados para a nuvem`);
+  showRecoveryCode(code);
 }
 $("#migForm").addEventListener("submit", async e=>{
   e.preventDefault();
   const old = $("#migPass").value; if(!old) return lockErr("#migErr","Informe a senha.");
   $("#migBtn").disabled = true; lockErr("#migErr","");
   try{
-    const o = await (async()=>{ const salt=unb64(migCtx.env.salt); const key=await deriveKey(old, salt, migCtx.env.iter||ITER); return {data: await decryptObj(key, migCtx.env.iv, migCtx.env.ct)}; })();
+    let o; try{ o = await openEnvelope(migCtx.env, old); }catch(e1){ o = await openEnvelope(migCtx.env, old, true); }
     $("#migPass").value = "";
-    if(migCtx.kind==="old"){ session.versao = migCtx.versao; state = blankState(o.data); await newKeyFor(session.pass); startApp(); save(); toast("Dados reabertos e cifrados com a senha atual"); }
-    else await finishMigration(o.data);
+    if(migCtx.kind==="old"){
+      session.versao = migCtx.versao; state = blankState(o.data);
+      if(o.legacy){ const code = await newDek(); startApp(); save(); showRecoveryCode(code); }
+      else { adopt(o); session.wrapPw = await wrapKey(session.raw, session.pass); startApp(); save(); toast("Dados abertos e protegidos com a senha atual"); }
+    } else await finishMigration(o.data);
   }catch(err){ lockErr("#migErr","Senha incorreta."); }
   finally{ $("#migBtn").disabled = false; }
 });
-$("#migSkip").addEventListener("click", async ()=>{ try{ localStorage.setItem(VAULT_KEY+".migrado","ignorado"); }catch(e){} await newKeyFor(session.pass); state = blankState({}); startApp(); save(); });
+$("#migSkip").addEventListener("click", async ()=>{ try{ localStorage.setItem(VAULT_KEY+".migrado","ignorado"); }catch(e){} const code = await newDek(); state = blankState({}); startApp(); save(); showRecoveryCode(code); });
 
 $("#loginForm").addEventListener("submit", async e=>{
   e.preventDefault();
@@ -1427,10 +1514,10 @@ $("#loginForm").addEventListener("submit", async e=>{
       if(err.net){
         // sem internet: abre a cópia local se existir
         const keys = Object.keys(localStorage).filter(k=>k.startsWith(CACHE_PREFIX));
-        for(const k of keys){ const c = JSON.parse(localStorage.getItem(k)); if(c && c.envelope && c.envelope.user===email){ const o = await openEnvelope(c.envelope, pass); Object.assign(session,{uid:k.slice(CACHE_PREFIX.length), key:o.key, salt:o.salt, iter:o.iter, versao:c.versao, auth:null}); state=blankState(o.data); startApp(); setSync("off","Sem conexão: salvo no aparelho"); return; } }
-        throw Object.assign(new Error("Sem conexão com a nuvem. Verifique a internet."), {show:true});
+        for(const k of keys){ const c = JSON.parse(localStorage.getItem(k)); if(c && c.envelope && c.envelope.user===email){ const o = await openEnvelope(c.envelope, pass); if(o.legacy) break; adopt(o); Object.assign(session,{uid:k.slice(CACHE_PREFIX.length), versao:c.versao, auth:null}); state=blankState(o.data); startApp(); setSync("off","Sem conexão: salvo no aparelho"); return; } }
+        throw showErr("Sem conexão com a nuvem. Verifique a internet.");
       }
-      if(/confirm/i.test(err.message)) throw Object.assign(new Error("Confirme o e-mail pelo link que o Supabase enviou e tente de novo."), {show:true});
+      if(/confirm/i.test(err.message)) throw showErr("Confirme o e-mail pelo link que o Supabase enviou e tente de novo.");
       throw err;
     }
     setAuth(d); fails = 0; $("#loginPass").value = "";
@@ -1453,14 +1540,70 @@ $("#setupForm").addEventListener("submit", async e=>{
     session = {user:email, pass:p1};
     const d = await sb("/auth/v1/signup", {method:"POST", body:{email, password: await authSecret(email, p1)}});
     $("#setupPass").value = $("#setupPass2").value = "";
-    if(d && d.access_token){ setAuth(d); await afterAuth(); toast("Conta criada"); }
+    if(d && d.access_token){ setAuth(d); await afterAuth(); }
     else { session = null; $("#loginUser").value = email; showLock("login"); const ok=$("#loginOk"); ok.textContent = "Conta criada. Abra o e-mail de confirmação enviado pelo Supabase, clique no link e depois entre aqui."; ok.hidden=false; }
   }catch(err){
     session = null;
     lockErr("#setupErr", err.net ? "Sem conexão com a nuvem. Verifique a internet." : /already|registered|exists/i.test(err.message) ? "Este e-mail já tem conta. Use “Já tenho conta”." : /signup|disabled/i.test(err.message) ? "Novas contas estão desativadas neste sistema." : "Não foi possível criar a conta: "+err.message);
   }finally{ $("#setupBtn").disabled=false; $("#setupBtn").textContent="Criar conta"; }
 });
+
+/* Esqueci a senha: link por e-mail + chave de recuperação */
 $("#forgotBtn").addEventListener("click", ()=>{ $("#forgotBox").hidden = !$("#forgotBox").hidden; });
+$("#forgotSend").addEventListener("click", async ()=>{
+  const email = $("#loginUser").value.trim().toLowerCase();
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ lockErr("#loginErr","Digite o e-mail da conta no campo E-mail."); $("#loginUser").focus(); return; }
+  lockErr("#loginErr",""); $("#forgotSend").disabled = true;
+  try{
+    await sb(`/auth/v1/recover?redirect_to=${encodeURIComponent(location.origin+location.pathname)}`, {method:"POST", body:{email}});
+    const ok=$("#forgotOk"); ok.textContent = "Se o e-mail tiver conta, o link chega em instantes (confira o spam). Abra o link neste aparelho e tenha a chave de recuperação em mãos."; ok.hidden=false;
+  }catch(e){ lockErr("#loginErr", e.net ? "Sem conexão com a nuvem." : /rate|seconds|limit/i.test(e.message) ? "Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo." : "Não foi possível enviar: "+e.message); }
+  finally{ $("#forgotSend").disabled = false; }
+});
+async function recSession(pass){
+  session = {auth:recAuth, pass};
+  const u = await sb("/auth/v1/user", {token:recAuth.access});
+  session.uid = u.id; session.user = (u.email||"").toLowerCase();
+}
+$("#recForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const code = $("#recCode").value, p1 = $("#recPass").value, p2 = $("#recPass2").value;
+  if(recNorm(code).length!==24) return lockErr("#recErr","A chave tem 24 letras e números, no formato XXXX-XXXX-XXXX-XXXX-XXXX-XXXX.");
+  if(p1.length<8) return lockErr("#recErr","A nova senha precisa ter pelo menos 8 caracteres.");
+  if(p1!==p2) return lockErr("#recErr","As senhas não conferem.");
+  lockErr("#recErr",""); $("#recBtn").disabled = true; $("#recBtn").textContent = "Redefinindo…";
+  try{
+    await recSession(p1);
+    const row = await remoteGet();
+    let o = null;
+    if(row){
+      try{ o = await openEnvelope(row.envelope, code, true); }
+      catch(err){ throw showErr(row.envelope.v>=4 ? "Chave de recuperação incorreta." : "Esta conta ainda não tem chave de recuperação. Sem a senha antiga, só é possível começar do zero."); }
+      adopt(o); session.wrapPw = await wrapKey(session.raw, p1); session.versao = row.versao; state = blankState(o.data);
+    }
+    await sb("/auth/v1/user", {method:"PUT", token:recAuth.access, body:{password: await authSecret(session.user, p1)}});
+    $("#recCode").value = $("#recPass").value = $("#recPass2").value = "";
+    if(!row){ await afterAuth(); return; }
+    session.syncedIds = new Set(state.tx.map(t=>t.id));
+    startApp(); save(); toast("Senha redefinida. Todos os dados foram mantidos.");
+  }catch(err){
+    session = null;
+    lockErr("#recErr", err.show ? err.message : err.net ? "Sem conexão com a nuvem." : /expired|invalid|jwt/i.test(err.message) ? "O link expirou. Peça um novo em “Esqueci a senha”." : "Não foi possível redefinir: "+err.message);
+  }finally{ $("#recBtn").disabled = false; $("#recBtn").textContent = "Redefinir senha"; }
+});
+$("#recNoKey").addEventListener("click", ()=>{ $("#recNoKeyBox").hidden = !$("#recNoKeyBox").hidden; });
+armConfirm($("#recStartOver"), "Clique de novo: começar do zero", async ()=>{
+  const p1 = $("#recPass").value, p2 = $("#recPass2").value;
+  if(p1.length<8 || p1!==p2){ lockErr("#recErr","Preencha a nova senha (mínimo 8 caracteres) nos dois campos."); return; }
+  try{
+    await recSession(p1);
+    let row = null; try{ row = await remoteGet(); }catch(e){}
+    await sb("/auth/v1/user", {method:"PUT", token:recAuth.access, body:{password: await authSecret(session.user, p1)}});
+    session.versao = row ? row.versao : null;
+    const code = await newDek(); state = blankState({}); session.syncedIds = new Set();
+    startApp(); save(); showRecoveryCode(code);
+  }catch(err){ session = null; lockErr("#recErr", err.net ? "Sem conexão com a nuvem." : "O link expirou. Peça um novo em “Esqueci a senha”."); }
+});
 
 $("#pwChange").addEventListener("click", async ()=>{
   const o=$("#pwOld").value, n1=$("#pwNew").value, n2=$("#pwNew2").value;
@@ -1471,10 +1614,10 @@ $("#pwChange").addEventListener("click", async ()=>{
   await saveChain;
   try{ await sb("/auth/v1/user", {method:"PUT", token: await token(), body:{password: await authSecret(session.user, n1)}}); }
   catch(e){ toast(e.net ? "Sem conexão: tente de novo com internet" : "Não foi possível trocar a senha: "+e.message); return; }
-  session.pass = n1; await newKeyFor(n1);
+  session.pass = n1; session.wrapPw = await wrapKey(session.raw, n1);
   save(); await saveChain; refreshBackupCache();
   $("#pwOld").value=$("#pwNew").value=$("#pwNew2").value="";
-  toast("Senha alterada. Backups em arquivo antigos continuam com a senha antiga.");
+  toast("Senha alterada. A chave de recuperação continua a mesma.");
 });
 
 /* Versões anteriores (histórico na nuvem) */
@@ -1499,7 +1642,17 @@ $("#verList").addEventListener("click", e=>{
 
 /* ---------- Início ---------- */
 if(!(window.crypto && crypto.subtle)) showLock("nocrypto");
-else showLock("login");
+else {
+  const H = new URLSearchParams(location.hash.slice(1));
+  const clean = ()=>{ try{ history.replaceState(null, "", location.pathname+location.search); }catch(e){} };
+  if(H.get("type")==="recovery" && H.get("access_token")){
+    recAuth = {access:H.get("access_token"), refresh:H.get("refresh_token"), exp:Number(H.get("expires_at"))||Math.floor(Date.now()/1000)+3600};
+    clean(); showLock("rec");
+  } else if(H.get("error") || H.get("error_code")){
+    clean(); showLock("login");
+    lockErr("#loginErr", H.get("error_code")==="otp_expired" ? "O link de redefinição expirou ou já foi usado. Peça um novo em “Esqueci a senha”." : "Não foi possível usar o link: "+(H.get("error_description")||"erro desconhecido").replace(/\+/g," "));
+  } else showLock("login");
+}
 })();
 </script>
 </body>
