@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
 <title>Cá Holística Finanças</title>
 <meta name="description" content="Gestão financeira pessoal e empresarial da Cá Holística">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -10,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700&display=swap">
 <style>
 /* =========================================================
-   IDENTIDADE VISUAL — rosé, sálvia e lilás
+   IDENTIDADE VISUAL: rosé, sálvia e lilás
    ========================================================= */
 :root{
   --bg:#F8F1F1; --surface:#FFFFFF; --surface-2:#F4EAEC; --line:#E8D9DD;
@@ -69,12 +70,20 @@ main.wrap{position:relative;z-index:1}
 .lock form{display:grid;gap:12px}
 .lock .btn.primary{width:100%;padding:11px 16px;font-size:.95rem}
 .lock-err{color:var(--crit);font-size:.85rem;font-weight:600;text-align:center}
-.lock-links{display:flex;justify-content:center}
+.lock-links{display:flex;justify-content:center;gap:6px 14px;flex-wrap:wrap}
 .linkish{border:0;background:none;color:var(--ink-2);text-decoration:underline;cursor:pointer;font-size:.84rem;padding:4px}
 .lock .note{font-size:.8rem}
 input[type=password]{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px}
 input[type=password]:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
-.user-chip{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--ink-2)}
+.user-chip{display:flex;align-items:center;gap:10px;font-size:.85rem;color:var(--ink-2);flex-wrap:wrap}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2)}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--ink-3)}
+.sync.ok i{background:var(--inc)} .sync.busy i{background:var(--warn)} .sync.off i{background:var(--crit)}
+.sync.off{color:var(--crit)}
+.ver-list{display:grid;gap:6px;margin-top:10px}
+.ver-item{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:.86rem}
+.ver-item .grow{flex:1;min-width:160px}
+.lock-ok{color:var(--inc);font-size:.85rem;font-weight:600;text-align:center}
 .pw-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-items:end}
 @media (max-width:640px){.pw-grid{grid-template-columns:1fr}}
 [hidden]{display:none!important}
@@ -265,25 +274,34 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
     </div>
 
     <form id="loginForm" hidden novalidate>
-      <label class="field"><span>Usuário</span><input type="text" id="loginUser" autocomplete="username" autocapitalize="none"></label>
+      <label class="field"><span>E-mail</span><input type="email" id="loginUser" autocomplete="username" autocapitalize="none" inputmode="email"></label>
       <label class="field"><span>Senha</span><input type="password" id="loginPass" autocomplete="current-password"></label>
       <button class="btn primary" type="submit" id="loginBtn">Entrar</button>
       <div class="lock-err" id="loginErr" hidden></div>
-      <div class="lock-links"><button type="button" class="linkish" id="forgotBtn">Esqueci a senha</button></div>
+      <div class="lock-ok" id="loginOk" hidden></div>
+      <div class="lock-links"><button type="button" class="linkish" id="toSetup">Primeiro acesso? Criar conta</button><button type="button" class="linkish" id="forgotBtn">Esqueci a senha</button></div>
       <div id="forgotBox" class="stack" hidden>
-        <p class="note" style="margin:0">Por segurança, a senha não pode ser recuperada: sem ela, os dados cifrados não abrem. Você pode apagar os dados deste navegador e criar um novo acesso. Depois, restaure um backup .json (com a senha usada quando ele foi feito).</p>
-        <button type="button" class="btn danger" id="resetVault">Apagar dados e criar novo acesso</button>
+        <p class="note" style="margin:0">Por segurança, a senha não pode ser recuperada: é ela que abre os dados cifrados, e nem o Supabase consegue lê-los. Sem a senha, o caminho é criar uma conta nova com outro e-mail e restaurar um backup .json (informando a senha usada quando ele foi feito).</p>
       </div>
     </form>
 
     <form id="setupForm" hidden novalidate>
-      <p class="note" style="margin:0">Primeiro acesso neste aparelho. Crie um usuário e uma senha: os lançamentos serão guardados cifrados com essa senha.</p>
-      <label class="field"><span>Usuário</span><input type="text" id="setupUser" autocomplete="username" autocapitalize="none" placeholder="Ex.: camila"></label>
+      <p class="note" style="margin:0">Crie a conta uma única vez. Depois, entre com o mesmo e-mail e senha em qualquer aparelho: os dados ficam guardados cifrados na nuvem.</p>
+      <label class="field"><span>E-mail</span><input type="email" id="setupUser" autocomplete="username" autocapitalize="none" inputmode="email"></label>
       <label class="field"><span>Senha (mínimo 8 caracteres)</span><input type="password" id="setupPass" autocomplete="new-password"></label>
       <label class="field"><span>Repita a senha</span><input type="password" id="setupPass2" autocomplete="new-password"></label>
-      <button class="btn primary" type="submit" id="setupBtn">Criar acesso</button>
+      <button class="btn primary" type="submit" id="setupBtn">Criar conta</button>
       <div class="lock-err" id="setupErr" hidden></div>
+      <div class="lock-links"><button type="button" class="linkish" id="toLogin">Já tenho conta</button></div>
       <p class="small muted" style="margin:0;text-align:center">Guarde a senha em local seguro: não há como recuperá-la.</p>
+    </form>
+
+    <form id="migForm" hidden novalidate>
+      <p class="note" style="margin:0" id="migMsg"></p>
+      <label class="field"><span id="migLabel">Senha antiga</span><input type="password" id="migPass" autocomplete="off"></label>
+      <button class="btn primary" type="submit" id="migBtn">Abrir e enviar para a nuvem</button>
+      <div class="lock-err" id="migErr" hidden></div>
+      <div class="lock-links"><button type="button" class="linkish" id="migSkip"></button></div>
     </form>
 
     <div id="noCrypto" class="note" hidden>Este navegador não oferece a criptografia necessária. Abra o sistema pelo endereço https do GitHub Pages, num navegador atualizado.</div>
@@ -305,7 +323,7 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
         <div class="brand-sub">Gestão financeira · pessoal &amp; empresa</div>
       </div>
     </div>
-    <div class="user-chip"><span id="userName"></span><button class="btn sm" id="logoutBtn" type="button">Sair</button></div>
+    <div class="user-chip"><span class="sync" id="syncChip" title=""><i></i><span id="syncTxt">Nuvem</span></span><span id="userName"></span><button class="btn sm" id="logoutBtn" type="button">Sair</button></div>
     <nav class="tabs" role="tablist" aria-label="Seções">
       <button role="tab" id="tab-lanc" data-tab="lanc" aria-selected="true">Lançamentos</button>
       <button role="tab" id="tab-dash" data-tab="dash" aria-selected="false">Painel</button>
@@ -504,7 +522,7 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
           <button class="btn" id="bkRestoreText" type="button">Restaurar do texto</button>
         </div>
         <label class="field" style="margin-top:10px"><span>Senha do backup (só se for diferente da senha atual)</span><input type="password" id="bkPass" autocomplete="off"></label>
-        <p class="note" style="margin-bottom:0">Faça um backup semanal. O arquivo .json sai cifrado com a sua senha, então só abre com ela. A planilha .csv sai aberta, sem senha: guarde-a com cuidado.</p>
+        <p class="note" style="margin-bottom:0">Os dados já ficam na nuvem, mas um backup mensal em arquivo é uma segurança extra. O .json sai cifrado com a sua senha, então só abre com ela. A planilha .csv sai aberta, sem senha: guarde-a com cuidado.</p>
       </div>
 
       <div class="panel">
@@ -516,7 +534,10 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
             <label class="field"><span>Repita a nova</span><input type="password" id="pwNew2" autocomplete="new-password"></label>
           </div>
           <div><button class="btn" id="pwChange" type="button">Alterar senha</button></div>
-          <p class="note" style="margin:0">O sistema bloqueia sozinho após 15 minutos sem uso. A senha não é guardada em lugar nenhum: ela gera a chave que cifra os dados (AES-256).</p>
+          <p class="note" style="margin:0">O sistema bloqueia sozinho após 15 minutos sem uso. A senha não é guardada em lugar nenhum: ela gera a chave que cifra os dados (AES-256) e uma segunda chave, diferente, usada para entrar no Supabase. Assim, nem o Supabase conhece a senha.</p>
+          <div class="panel-head" style="margin:8px 0 0"><h3>Versões salvas na nuvem</h3><button class="btn sm" id="verLoad" type="button">Ver versões</button></div>
+          <p class="small muted" style="margin:0">A nuvem guarda automaticamente as 60 versões anteriores. Restaure uma delas se algo for apagado por engano.</p>
+          <div class="ver-list" id="verList"></div>
         </div>
       </div>
 
@@ -524,7 +545,7 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
         <div class="panel-head"><h2>Dados e privacidade</h2></div>
         <div class="stack">
           <label class="field"><span>Nome exibido no topo</span><input type="text" id="setBrand" placeholder="Cá Holística"></label>
-          <p class="note" style="margin:0">Nenhuma informação sai deste aparelho: não há servidor nem envio para terceiros. Os lançamentos ficam cifrados neste navegador e só abrem com usuário e senha. O endereço do GitHub Pages pode ser visto por qualquer pessoa, mas só mostra a tela de acesso, porque os dados não estão no site.</p>
+          <p class="note" style="margin:0">Os lançamentos são cifrados neste navegador antes de sair dele. O Supabase guarda apenas texto embaralhado, sem conseguir ler valores, categorias ou descrições. Uma cópia cifrada também fica neste aparelho, para funcionar sem internet. O endereço do GitHub Pages só mostra a tela de acesso.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn" id="clearExamples" type="button">Apagar exemplos</button>
             <button class="btn danger" id="clearAll" type="button">Apagar todos os dados</button>
@@ -617,11 +638,14 @@ const numToBR = v => (Math.round(v*100)/100).toFixed(2).replace(".",",");
 let state = {tx:[], limits:[], customCats:{}, brand:"", seeded:false};
 let ui = {tab:"lanc", mode:"mes", anchor:iso(new Date()), dConta:"", lMes:iso(new Date()).slice(0,7)};
 
-/* ---------- Cofre cifrado (PBKDF2 + AES-GCM) ---------- */
-const VAULT_KEY = "caHolistica.cofre.v2";
-const ITER = 310000;
+/* ---------- Cofre cifrado (PBKDF2 + AES-GCM) + Supabase ---------- */
+const SB_URL = "https://zzmgmjeazspoentmfnhh.supabase.co";
+const SB_KEY = "sb_publishable_4bss-8g0MlJ0PFLU_40jrw_R2DzqT-5";
+const VAULT_KEY = "caHolistica.cofre.v2";          // cofre local da versão anterior (migração)
+const CACHE_PREFIX = "caHolistica.nuvem.v3:";       // cópia cifrada local por conta
+const ITER = 310000, AUTH_ITER = 200000;
 const te = new TextEncoder(), td = new TextDecoder();
-let session = null; // {key, salt, iter, user, pass}
+let session = null; // {key, salt, iter, user, pass, uid, auth, versao}
 let saveChain = Promise.resolve();
 function b64(buf){ const u=new Uint8Array(buf); let s=""; for(let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
 function unb64(s){ const b=atob(s); const u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; }
@@ -629,12 +653,87 @@ async function deriveKey(pass, salt, iter){
   const base = await crypto.subtle.importKey("raw", te.encode(pass), "PBKDF2", false, ["deriveKey"]);
   return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:iter, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
 }
+// Segredo de login: derivado da senha, diferente da chave dos dados. O Supabase nunca recebe a senha real.
+async function authSecret(email, pass){
+  const base = await crypto.subtle.importKey("raw", te.encode(pass), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({name:"PBKDF2", salt:te.encode("ca-holistica-financas:auth:"+email.trim().toLowerCase()), iterations:AUTH_ITER, hash:"SHA-256"}, base, 256);
+  return [...new Uint8Array(bits)].map(b=>b.toString(16).padStart(2,"0")).join("");
+}
 async function encryptObj(key, obj){ const iv = crypto.getRandomValues(new Uint8Array(12)); const ct = await crypto.subtle.encrypt({name:"AES-GCM", iv}, key, te.encode(JSON.stringify(obj))); return {iv:b64(iv), ct:b64(ct)}; }
 async function decryptObj(key, iv, ct){ const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64(iv)}, key, unb64(ct)); return JSON.parse(td.decode(pt)); }
+async function openEnvelope(env, pass){ const salt = unb64(env.salt); const key = (session && session.key && b64(session.salt)===env.salt && pass===session.pass) ? session.key : await deriveKey(pass, salt, env.iter||ITER); return {data: await decryptObj(key, env.iv, env.ct), key, salt, iter: env.iter||ITER}; }
 function readVault(){ try{ const v = JSON.parse(localStorage.getItem(VAULT_KEY)||"null"); return v && v.ct ? v : null; }catch(e){ return null; } }
-async function envelope(){ const {iv,ct} = await encryptObj(session.key, state); return {app:"ca-holistica-financas", v:2, cifrado:true, user:session.user, salt:b64(session.salt), iter:session.iter, iv, ct}; }
-async function persist(){ if(!session) return; const env = await envelope(); try{ localStorage.setItem(VAULT_KEY, JSON.stringify(env)); }catch(e){ toast("Não foi possível salvar neste navegador"); } }
+function readCache(uid){ try{ return JSON.parse(localStorage.getItem(CACHE_PREFIX+uid)||"null"); }catch(e){ return null; } }
+function writeCache(obj){ try{ localStorage.setItem(CACHE_PREFIX+session.uid, JSON.stringify(obj)); }catch(e){} }
+async function envelope(){ const {iv,ct} = await encryptObj(session.key, state); return {app:"ca-holistica-financas", v:3, cifrado:true, user:session.user, salt:b64(session.salt), iter:session.iter, iv, ct}; }
+
+/* Supabase via REST (sem bibliotecas externas) */
+async function sb(path, opt={}){
+  const headers = Object.assign({apikey:SB_KEY, "Content-Type":"application/json"}, opt.token?{Authorization:"Bearer "+opt.token}:{}, opt.headers||{});
+  let r;
+  try{ r = await fetch(SB_URL+path, {method:opt.method||"GET", headers, body: opt.body!==undefined?JSON.stringify(opt.body):undefined}); }
+  catch(e){ const err = new Error("rede"); err.net = true; throw err; }
+  const txt = await r.text(); let data = null; try{ data = txt?JSON.parse(txt):null; }catch(e){ data = txt; }
+  if(!r.ok){ const err = new Error((data&&(data.msg||data.message||data.error_description||data.error))||("HTTP "+r.status)); err.status=r.status; err.code=data&&(data.error_code||data.code); throw err; }
+  return data;
+}
+function setAuth(d){ session.auth = {access:d.access_token, refresh:d.refresh_token, exp: d.expires_at || (Math.floor(Date.now()/1000)+(d.expires_in||3600))}; session.uid = d.user.id; }
+async function token(){
+  if(!session.auth){ const e=new Error("sem sessão"); e.net=true; throw e; }
+  if(session.auth && Date.now()/1000 > session.auth.exp-60){
+    const d = await sb("/auth/v1/token?grant_type=refresh_token", {method:"POST", body:{refresh_token:session.auth.refresh}});
+    setAuth(d);
+  }
+  return session.auth.access;
+}
+async function remoteGet(){ const rows = await sb(`/rest/v1/cofres?select=envelope,versao,atualizado_em&user_id=eq.${session.uid}`, {token: await token()}); return rows && rows[0] || null; }
+async function remotePut(env){
+  if(session.versao==null){
+    const rows = await sb("/rest/v1/cofres", {method:"POST", token: await token(), headers:{Prefer:"return=representation"}, body:{user_id:session.uid, envelope:env}});
+    return rows[0];
+  }
+  const rows = await sb(`/rest/v1/cofres?user_id=eq.${session.uid}&versao=eq.${session.versao}`, {method:"PATCH", token: await token(), headers:{Prefer:"return=representation"}, body:{envelope:env}});
+  if(!rows || !rows.length){ const e = new Error("conflito"); e.conflict = true; throw e; }
+  return rows[0];
+}
+function setSync(kind, txt){ const c=$("#syncChip"); if(!c) return; c.className = "sync "+kind; $("#syncTxt").textContent = txt; }
+async function persist(){
+  if(!session) return;
+  const ids = new Set(state.tx.map(t=>t.id));
+  const env = await envelope();
+  writeCache({envelope:env, versao:session.versao, pendente:true});
+  setSync("busy","Salvando…");
+  try{
+    const row = await remotePut(env);
+    session.versao = row.versao; session.syncedIds = ids;
+    writeCache({envelope:env, versao:session.versao, pendente:false});
+    setSync("ok","Salvo na nuvem");
+  }catch(e){
+    if(e.conflict){ await pullRemote(true, state.tx, session.syncedIds||new Set()); return; }
+    setSync("off", e.net ? "Sem conexão: salvo no aparelho" : "Erro na nuvem: salvo no aparelho");
+  }
+}
 function save(){ if(!session) return; saveChain = saveChain.then(persist).then(()=>refreshBackupCache()).catch(()=>{}); }
+async function pullRemote(fromConflict, localTx, known){
+  try{
+    const row = await remoteGet(); if(!row) return;
+    if(!fromConflict && row.versao===session.versao) return;
+    const o = await openEnvelope(row.envelope, session.pass);
+    state = Object.assign({tx:[],limits:[],customCats:{},brand:"",seeded:true}, o.data);
+    session.key=o.key; session.salt=o.salt; session.iter=o.iter; session.versao=row.versao;
+    writeCache({envelope:row.envelope, versao:row.versao, pendente:false});
+    session.syncedIds = new Set(state.tx.map(t=>t.id));
+    // lançamentos novos feitos aqui e ainda não enviados são mantidos
+    const add = (localTx||[]).filter(t=>!known.has(t.id) && !state.tx.some(r=>r.id===t.id));
+    if(add.length) state.tx.push(...add);
+    applyBrand(); renderAll(); setSync("ok","Salvo na nuvem");
+    if(add.length){ save(); toast(`Alterações de outro aparelho combinadas com ${add.length} lançamento(s) novo(s) daqui`); }
+    else toast(fromConflict ? "Havia alterações de outro aparelho: dados atualizados. Confira a última alteração." : "Atualizado com alterações de outro aparelho");
+  }catch(e){ if(e.net) setSync("off","Sem conexão: salvo no aparelho"); }
+}
+window.addEventListener("online", ()=>{ if(session) save(); });
+document.addEventListener("visibilitychange", ()=>{ if(session && document.visibilityState==="visible"){ const c=readCache(session.uid); if(c && c.pendente) save(); else pullRemote(false); } });
+setInterval(()=>{ if(!session) return; const c=readCache(session.uid); if(c && c.pendente) save(); }, 60000);
 function loadUI(){ try{ const r = localStorage.getItem(UI_KEY); if(r) Object.assign(ui, JSON.parse(r), {anchor:iso(new Date())}); }catch(e){} }
 function saveUI(){ try{ localStorage.setItem(UI_KEY, JSON.stringify({tab:ui.tab,mode:ui.mode,dConta:ui.dConta})); }catch(e){} }
 
@@ -1011,7 +1110,7 @@ function renderAlerts(r, rp, cur, prev){
     const rr = range(l.per==="semana"?"semana":"mes", today);
     const v = limitSpent(l, rr); const p = v/l.valor;
     const lbl = `${l.cat} (${l.conta==="ambas"?"PF+PJ":l.conta==="empresa"?"PJ":"PF"}) · ${l.per==="semana"?"esta semana":"este mês"}`;
-    if(p>=1) out.push({lvl:"crit", tag:"Limite estourado", txt:`${lbl}: ${money(v)} de ${money(l.valor)} — passou ${money(v-l.valor)}.`});
+    if(p>=1) out.push({lvl:"crit", tag:"Limite estourado", txt:`${lbl}: ${money(v)} de ${money(l.valor)}, passou ${money(v-l.valor)}.`});
     else if(p>=.8) out.push({lvl:"warn", tag:"Perto do limite", txt:`${lbl}: ${money(v)} de ${money(l.valor)} (${(p*100).toFixed(0)}%). Restam ${money(l.valor-v)}.`});
   });
   // Saldo negativo
@@ -1219,13 +1318,16 @@ drawFoliage();
 const LEGACY_KEY = STORE_KEY;
 function showLock(mode){
   $("#app").hidden = true; $("#lock").hidden = false;
-  $("#loginForm").hidden = mode!=="login"; $("#setupForm").hidden = mode!=="setup"; $("#noCrypto").hidden = mode!=="nocrypto";
-  $("#lockSub").textContent = mode==="setup" ? "Criar acesso" : "Gestão financeira · pessoal & empresa";
-  setTimeout(()=>{ const f = mode==="login" ? $("#loginUser") : mode==="setup" ? $("#setupUser") : null; if(f) f.focus(); }, 50);
+  ["loginForm","setupForm","migForm"].forEach(id=>$("#"+id).hidden = id!==mode+"Form");
+  $("#noCrypto").hidden = mode!=="nocrypto";
+  $("#lockSub").textContent = mode==="setup" ? "Criar conta" : mode==="mig" ? "Trazer dados" : "Gestão financeira · pessoal & empresa";
+  setTimeout(()=>{ const f = {login:"#loginUser", setup:"#setupUser", mig:"#migPass"}[mode]; if(f) $(f).focus(); }, 50);
 }
+$("#toSetup").addEventListener("click", ()=>showLock("setup"));
+$("#toLogin").addEventListener("click", ()=>showLock("login"));
 function startApp(){
   $("#lock").hidden = true; $("#app").hidden = false;
-  $("#userName").textContent = session.user; $("#accUser").textContent = "Usuário: "+session.user;
+  $("#userName").textContent = session.user; $("#accUser").textContent = session.user;
   loadUI(); applyBrand();
   $("#lMes").value = ui.lMes || iso(new Date()).slice(0,7);
   resetForm(); renderBanner();
@@ -1240,67 +1342,164 @@ function armIdle(){ clearTimeout(idleT); idleT = setTimeout(()=>{ if(session) lo
 ["click","keydown","touchstart","scroll"].forEach(ev=>document.addEventListener(ev, ()=>{ if(session) armIdle(); }, {passive:true}));
 
 const lockErr = (id,msg)=>{ const e=$(id); e.textContent=msg; e.hidden=!msg; };
-let fails = 0, blockedUntil = 0;
+const blankState = d => Object.assign({tx:[],limits:[],customCats:{},brand:"",seeded:true}, d||{});
+let fails = 0, blockedUntil = 0, migCtx = null;
+
+async function newKeyFor(pass){ const salt = crypto.getRandomValues(new Uint8Array(16)); session.salt = salt; session.iter = ITER; session.key = await deriveKey(pass, salt, ITER); }
+
+// Depois de autenticar: decide de onde vêm os dados
+async function afterAuth(){
+  let row = null, offline = false;
+  try{ row = await remoteGet(); }catch(e){ if(e.net) offline = true; else throw e; }
+  const cache = readCache(session.uid);
+  if(offline){
+    if(!cache) throw Object.assign(new Error("Sem conexão com a nuvem e sem cópia neste aparelho. Tente com internet."), {show:true});
+    const o = await openEnvelope(cache.envelope, session.pass);
+    Object.assign(session, {key:o.key, salt:o.salt, iter:o.iter, versao:cache.versao});
+    state = blankState(o.data); startApp(); setSync("off","Sem conexão: salvo no aparelho"); return;
+  }
+  if(row){
+    // cópia local com alterações ainda não enviadas tem prioridade se partiu da mesma versão
+    const useLocal = cache && cache.pendente && cache.versao===row.versao;
+    const env = useLocal ? cache.envelope : row.envelope;
+    try{
+      const o = await openEnvelope(env, session.pass);
+      Object.assign(session, {key:o.key, salt:o.salt, iter:o.iter, versao:row.versao});
+      state = blankState(o.data); session.syncedIds = new Set((useLocal?[]:state.tx).map(t=>t.id)); startApp();
+      if(useLocal) save(); else { writeCache({envelope:row.envelope, versao:row.versao, pendente:false}); setSync("ok","Salvo na nuvem"); }
+    }catch(e){
+      migCtx = {kind:"old", env, versao:row.versao};
+      $("#migMsg").textContent = "Os dados na nuvem foram cifrados com uma senha anterior (a troca de senha não terminou de sincronizar). Informe a senha anterior para abri-los; eles serão cifrados de novo com a senha atual.";
+      $("#migLabel").textContent = "Senha anterior"; $("#migSkip").hidden = true; showLock("mig");
+    }
+    return;
+  }
+  // Conta sem dados na nuvem: procurar dados da versão anterior neste aparelho
+  session.versao = null;
+  const v = readVault(); let migrated = false; try{ migrated = !!localStorage.getItem(VAULT_KEY+".migrado"); }catch(e){}
+  if(v && !migrated){
+    try{ const o = await openEnvelope(v, session.pass); await finishMigration(o.data); return; }
+    catch(e){
+      migCtx = {kind:"legacy", env:v};
+      $("#migMsg").textContent = `Encontramos lançamentos salvos neste aparelho pela versão anterior (usuário “${v.user||"—"}”), com outra senha. Informe a senha antiga para trazê-los para a nuvem.`;
+      $("#migLabel").textContent = "Senha antiga deste aparelho"; $("#migSkip").textContent = "Começar sem esses dados"; $("#migSkip").hidden = false; showLock("mig");
+      return;
+    }
+  }
+  let legacy = null; try{ legacy = JSON.parse(localStorage.getItem(LEGACY_KEY)||"null"); }catch(e){}
+  if(legacy && Array.isArray(legacy.tx)) return finishMigration(legacy);
+  await newKeyFor(session.pass); seed(); state.seeded = true; startApp(); toast("Conta pronta. Os lançamentos de exemplo podem ser apagados em Ajustes.");
+}
+async function finishMigration(data){
+  state = blankState(data);
+  await newKeyFor(session.pass);
+  startApp();
+  save(); await saveChain;
+  try{ localStorage.setItem(VAULT_KEY+".migrado", new Date().toISOString()); }catch(e){}
+  toast(`${state.tx.length} lançamentos deste aparelho enviados para a nuvem`);
+}
+$("#migForm").addEventListener("submit", async e=>{
+  e.preventDefault();
+  const old = $("#migPass").value; if(!old) return lockErr("#migErr","Informe a senha.");
+  $("#migBtn").disabled = true; lockErr("#migErr","");
+  try{
+    const o = await (async()=>{ const salt=unb64(migCtx.env.salt); const key=await deriveKey(old, salt, migCtx.env.iter||ITER); return {data: await decryptObj(key, migCtx.env.iv, migCtx.env.ct)}; })();
+    $("#migPass").value = "";
+    if(migCtx.kind==="old"){ session.versao = migCtx.versao; state = blankState(o.data); await newKeyFor(session.pass); startApp(); save(); toast("Dados reabertos e cifrados com a senha atual"); }
+    else await finishMigration(o.data);
+  }catch(err){ lockErr("#migErr","Senha incorreta."); }
+  finally{ $("#migBtn").disabled = false; }
+});
+$("#migSkip").addEventListener("click", async ()=>{ try{ localStorage.setItem(VAULT_KEY+".migrado","ignorado"); }catch(e){} await newKeyFor(session.pass); state = blankState({}); startApp(); save(); });
+
 $("#loginForm").addEventListener("submit", async e=>{
   e.preventDefault();
   if(Date.now() < blockedUntil){ lockErr("#loginErr", `Muitas tentativas. Aguarde ${Math.ceil((blockedUntil-Date.now())/1000)} s.`); return; }
-  const user = $("#loginUser").value.trim(), pass = $("#loginPass").value;
-  if(!user || !pass){ lockErr("#loginErr","Preencha usuário e senha."); return; }
-  const v = readVault(); if(!v){ showLock("setup"); return; }
-  $("#loginBtn").disabled = true; $("#loginBtn").textContent = "Abrindo…"; lockErr("#loginErr","");
+  const email = $("#loginUser").value.trim().toLowerCase(), pass = $("#loginPass").value;
+  if(!email || !pass){ lockErr("#loginErr","Preencha e-mail e senha."); return; }
+  $("#loginBtn").disabled = true; $("#loginBtn").textContent = "Abrindo…"; lockErr("#loginErr",""); $("#loginOk").hidden = true;
   try{
-    if(norm(user)!==norm(v.user)) throw new Error("user");
-    const salt = unb64(v.salt), key = await deriveKey(pass, salt, v.iter||ITER);
-    const data = await decryptObj(key, v.iv, v.ct);
-    session = {key, salt, iter:v.iter||ITER, user:v.user, pass};
-    state = Object.assign({tx:[],limits:[],customCats:{},brand:"",seeded:true}, data);
-    fails = 0; $("#loginPass").value = "";
-    startApp();
+    session = {user:email, pass};
+    const secret = await authSecret(email, pass);
+    let d;
+    try{ d = await sb("/auth/v1/token?grant_type=password", {method:"POST", body:{email, password:secret}}); }
+    catch(err){
+      if(err.net){
+        // sem internet: abre a cópia local se existir
+        const keys = Object.keys(localStorage).filter(k=>k.startsWith(CACHE_PREFIX));
+        for(const k of keys){ const c = JSON.parse(localStorage.getItem(k)); if(c && c.envelope && c.envelope.user===email){ const o = await openEnvelope(c.envelope, pass); Object.assign(session,{uid:k.slice(CACHE_PREFIX.length), key:o.key, salt:o.salt, iter:o.iter, versao:c.versao, auth:null}); state=blankState(o.data); startApp(); setSync("off","Sem conexão: salvo no aparelho"); return; } }
+        throw Object.assign(new Error("Sem conexão com a nuvem. Verifique a internet."), {show:true});
+      }
+      if(/confirm/i.test(err.message)) throw Object.assign(new Error("Confirme o e-mail pelo link que o Supabase enviou e tente de novo."), {show:true});
+      throw err;
+    }
+    setAuth(d); fails = 0; $("#loginPass").value = "";
+    await afterAuth();
   }catch(err){
-    fails++; if(fails>=5){ blockedUntil = Date.now()+30000; fails = 0; }
-    lockErr("#loginErr","Usuário ou senha incorretos.");
+    session = null;
+    if(err.show) lockErr("#loginErr", err.message);
+    else { fails++; if(fails>=5){ blockedUntil = Date.now()+30000; fails = 0; } lockErr("#loginErr","E-mail ou senha incorretos."); }
     $("#loginPass").value=""; $("#loginPass").focus();
   }finally{ $("#loginBtn").disabled=false; $("#loginBtn").textContent="Entrar"; }
 });
 $("#setupForm").addEventListener("submit", async e=>{
   e.preventDefault();
-  const user = $("#setupUser").value.trim(), p1 = $("#setupPass").value, p2 = $("#setupPass2").value;
-  if(!user) return lockErr("#setupErr","Informe um usuário.");
+  const email = $("#setupUser").value.trim().toLowerCase(), p1 = $("#setupPass").value, p2 = $("#setupPass2").value;
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return lockErr("#setupErr","Informe um e-mail válido.");
   if(p1.length<8) return lockErr("#setupErr","A senha precisa ter pelo menos 8 caracteres.");
   if(p1!==p2) return lockErr("#setupErr","As senhas não conferem.");
   lockErr("#setupErr",""); $("#setupBtn").disabled=true; $("#setupBtn").textContent="Criando…";
   try{
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    session = {key: await deriveKey(p1, salt, ITER), salt, iter:ITER, user, pass:p1};
-    let legacy = null; try{ legacy = JSON.parse(localStorage.getItem(LEGACY_KEY)||"null"); }catch(e){}
-    if(legacy && Array.isArray(legacy.tx)) state = Object.assign({tx:[],limits:[],customCats:{},brand:"",seeded:true}, legacy);
-    else seed();
-    await persist();
-    try{ localStorage.removeItem(LEGACY_KEY); }catch(e){}
+    session = {user:email, pass:p1};
+    const d = await sb("/auth/v1/signup", {method:"POST", body:{email, password: await authSecret(email, p1)}});
     $("#setupPass").value = $("#setupPass2").value = "";
-    startApp(); toast("Acesso criado");
-  }catch(err){ session=null; lockErr("#setupErr","Não foi possível criar o acesso neste navegador."); }
-  finally{ $("#setupBtn").disabled=false; $("#setupBtn").textContent="Criar acesso"; }
+    if(d && d.access_token){ setAuth(d); await afterAuth(); toast("Conta criada"); }
+    else { session = null; $("#loginUser").value = email; showLock("login"); const ok=$("#loginOk"); ok.textContent = "Conta criada. Abra o e-mail de confirmação enviado pelo Supabase, clique no link e depois entre aqui."; ok.hidden=false; }
+  }catch(err){
+    session = null;
+    lockErr("#setupErr", err.net ? "Sem conexão com a nuvem. Verifique a internet." : /already|registered|exists/i.test(err.message) ? "Este e-mail já tem conta. Use “Já tenho conta”." : /signup|disabled/i.test(err.message) ? "Novas contas estão desativadas neste sistema." : "Não foi possível criar a conta: "+err.message);
+  }finally{ $("#setupBtn").disabled=false; $("#setupBtn").textContent="Criar conta"; }
 });
 $("#forgotBtn").addEventListener("click", ()=>{ $("#forgotBox").hidden = !$("#forgotBox").hidden; });
-armConfirm($("#resetVault"), "Clique de novo: apaga tudo", ()=>{ try{ localStorage.removeItem(VAULT_KEY); localStorage.removeItem(LEGACY_KEY); }catch(e){} $("#forgotBox").hidden=true; showLock("setup"); });
 
 $("#pwChange").addEventListener("click", async ()=>{
   const o=$("#pwOld").value, n1=$("#pwNew").value, n2=$("#pwNew2").value;
   if(o!==session.pass){ toast("Senha atual incorreta"); $("#pwOld").focus(); return; }
   if(n1.length<8){ toast("A nova senha precisa ter pelo menos 8 caracteres"); return; }
   if(n1!==n2){ toast("As novas senhas não conferem"); return; }
+  if(!session.auth){ toast("Sem conexão: troque a senha quando estiver online"); return; }
   await saveChain;
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  session = Object.assign(session, {key: await deriveKey(n1, salt, ITER), salt, iter:ITER, pass:n1});
-  await persist(); refreshBackupCache();
+  try{ await sb("/auth/v1/user", {method:"PUT", token: await token(), body:{password: await authSecret(session.user, n1)}}); }
+  catch(e){ toast(e.net ? "Sem conexão: tente de novo com internet" : "Não foi possível trocar a senha: "+e.message); return; }
+  session.pass = n1; await newKeyFor(n1);
+  save(); await saveChain; refreshBackupCache();
   $("#pwOld").value=$("#pwNew").value=$("#pwNew2").value="";
-  toast("Senha alterada. Backups antigos continuam com a senha antiga.");
+  toast("Senha alterada. Backups em arquivo antigos continuam com a senha antiga.");
+});
+
+/* Versões anteriores (histórico na nuvem) */
+$("#verLoad").addEventListener("click", async ()=>{
+  const box = $("#verList"); box.innerHTML = `<div class="small muted">Carregando…</div>`;
+  try{
+    const rows = await sb(`/rest/v1/cofres_historico?select=id,envelope,versao,criado_em&user_id=eq.${session.uid}&order=criado_em.desc&limit=20`, {token: await token()});
+    if(!rows.length){ box.innerHTML = `<div class="small muted">Ainda não há versões anteriores.</div>`; return; }
+    const items = [];
+    for(const r of rows){ let n="?"; try{ const o = await openEnvelope(r.envelope, session.pass); n = o.data.tx.length; r._data = o.data; }catch(e){} items.push(r); r._n = n; }
+    window.__versoes = items;
+    box.innerHTML = items.map((r,i)=>`<div class="ver-item"><span class="grow">${new Date(r.criado_em).toLocaleString("pt-BR")}</span><span class="num muted">${r._n} lançamentos</span>${r._data?`<button class="btn sm" type="button" data-ver="${i}">Restaurar</button>`:`<span class="small muted">senha anterior</span>`}</div>`).join("");
+  }catch(e){ box.innerHTML = `<div class="small" style="color:var(--crit)">${e.net?"Sem conexão com a nuvem.":"Não foi possível carregar: "+esc(e.message)}</div>`; }
+});
+$("#verList").addEventListener("click", e=>{
+  const b = e.target.closest("[data-ver]"); if(!b) return;
+  if(b.dataset.armed!=="1"){ b.dataset.armed="1"; b.textContent="Confirmar"; setTimeout(()=>{ b.dataset.armed=""; b.textContent="Restaurar"; },4000); return; }
+  const r = window.__versoes[Number(b.dataset.ver)];
+  state = blankState(r._data); save(); applyBrand(); renderAll(); toast(`Versão de ${new Date(r.criado_em).toLocaleString("pt-BR")} restaurada`);
+  $("#verList").innerHTML = "";
 });
 
 /* ---------- Início ---------- */
 if(!(window.crypto && crypto.subtle)) showLock("nocrypto");
-else showLock(readVault() ? "login" : "setup");
+else showLock("login");
 })();
 </script>
 </body>
