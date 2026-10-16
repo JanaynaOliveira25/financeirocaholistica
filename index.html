@@ -764,22 +764,23 @@ async function remotePut(env){
 }
 function setSync(kind, txt){ const c=$("#syncChip"); if(!c) return; c.className = "sync "+kind; $("#syncTxt").textContent = txt; }
 async function persist(){
-  if(!session) return;
+  const s = session; if(!s) return;
   const ids = new Set(state.tx.map(t=>t.id));
   const env = await envelope();
-  writeCache({envelope:env, versao:session.versao, pendente:true});
+  writeCache({envelope:env, versao:s.versao, pendente:true});
   setSync("busy","Salvando…");
   try{
     const row = await remotePut(env);
-    session.versao = row.versao; session.syncedIds = ids;
-    writeCache({envelope:env, versao:session.versao, pendente:false});
+    s.versao = row.versao; s.syncedIds = ids;
+    writeCache({envelope:env, versao:s.versao, pendente:false});
     setSync("ok","Salvo na nuvem");
   }catch(e){
-    if(e.conflict){ await pullRemote(true, state.tx, session.syncedIds||new Set()); return; }
-    setSync("off", e.net ? "Sem conexão: salvo no aparelho" : "Erro na nuvem: salvo no aparelho");
+    if(e.conflict){ await pullRemote(true, state.tx, s.syncedIds||new Set()); return; }
+    console.warn("Falha ao salvar na nuvem:", e);
+    setSync("off", e.net ? "Sem conexão: salvo no aparelho" : e.status===401 ? "Sessão expirada: saia e entre de novo" : "Erro na nuvem: salvo no aparelho");
   }
 }
-function save(){ if(!session) return; saveChain = saveChain.then(persist).then(()=>refreshBackupCache()).catch(()=>{}); }
+function save(){ if(!session){ if(!$("#app").hidden) setSync("off","Sessão encerrada: saia e entre de novo"); return; } saveChain = saveChain.then(persist).then(()=>refreshBackupCache()).catch(()=>{}); }
 async function pullRemote(fromConflict, localTx, known){
   try{
     const row = await remoteGet(); if(!row) return;
@@ -1485,8 +1486,9 @@ async function finishMigration(data){
   toast(`${state.tx.length} lançamentos deste aparelho enviados para a nuvem`);
   showRecoveryCode(code);
 }
-$("#migForm").addEventListener("submit", async e=>{
-  e.preventDefault();
+let lockBusy = false;
+function guardSubmit(form, fn){ form.addEventListener("submit", async e=>{ e.preventDefault(); if(lockBusy || !$("#app").hidden) return; lockBusy = true; try{ await fn(e); } finally{ lockBusy = false; } }); }
+guardSubmit($("#migForm"), async e=>{
   const old = $("#migPass").value; if(!old) return lockErr("#migErr","Informe a senha.");
   $("#migBtn").disabled = true; lockErr("#migErr","");
   try{
@@ -1502,8 +1504,7 @@ $("#migForm").addEventListener("submit", async e=>{
 });
 $("#migSkip").addEventListener("click", async ()=>{ try{ localStorage.setItem(VAULT_KEY+".migrado","ignorado"); }catch(e){} const code = await newDek(); state = blankState({}); startApp(); save(); showRecoveryCode(code); });
 
-$("#loginForm").addEventListener("submit", async e=>{
-  e.preventDefault();
+guardSubmit($("#loginForm"), async e=>{
   if(Date.now() < blockedUntil){ lockErr("#loginErr", `Muitas tentativas. Aguarde ${Math.ceil((blockedUntil-Date.now())/1000)} s.`); return; }
   const email = $("#loginUser").value.trim().toLowerCase(), pass = $("#loginPass").value;
   if(!email || !pass){ lockErr("#loginErr","Preencha e-mail e senha."); return; }
@@ -1526,14 +1527,13 @@ $("#loginForm").addEventListener("submit", async e=>{
     setAuth(d); fails = 0; $("#loginPass").value = "";
     await afterAuth();
   }catch(err){
-    session = null;
+    if($("#app").hidden) session = null;
     if(err.show) lockErr("#loginErr", err.message);
     else { fails++; if(fails>=5){ blockedUntil = Date.now()+30000; fails = 0; } lockErr("#loginErr","E-mail ou senha incorretos."); }
     $("#loginPass").value=""; $("#loginPass").focus();
   }finally{ $("#loginBtn").disabled=false; $("#loginBtn").textContent="Entrar"; }
 });
-$("#setupForm").addEventListener("submit", async e=>{
-  e.preventDefault();
+guardSubmit($("#setupForm"), async e=>{
   const email = $("#setupUser").value.trim().toLowerCase(), p1 = $("#setupPass").value, p2 = $("#setupPass2").value;
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return lockErr("#setupErr","Informe um e-mail válido.");
   if(p1.length<8) return lockErr("#setupErr","A senha precisa ter pelo menos 8 caracteres.");
@@ -1546,7 +1546,7 @@ $("#setupForm").addEventListener("submit", async e=>{
     if(d && d.access_token){ setAuth(d); await afterAuth(); }
     else { session = null; $("#loginUser").value = email; showLock("login"); const ok=$("#loginOk"); ok.textContent = "Conta criada. Abra o e-mail de confirmação enviado pelo Supabase, clique no link e depois entre aqui."; ok.hidden=false; }
   }catch(err){
-    session = null;
+    if($("#app").hidden) session = null;
     lockErr("#setupErr", err.net ? "Sem conexão com a nuvem. Verifique a internet." : /already|registered|exists/i.test(err.message) ? "Este e-mail já tem conta. Use “Já tenho conta”." : /signup|disabled/i.test(err.message) ? "Novas contas estão desativadas neste sistema." : "Não foi possível criar a conta: "+err.message);
   }finally{ $("#setupBtn").disabled=false; $("#setupBtn").textContent="Criar conta"; }
 });
@@ -1563,13 +1563,16 @@ $("#forgotSend").addEventListener("click", async ()=>{
   }catch(e){ lockErr("#loginErr", e.net ? "Sem conexão com a nuvem." : /rate|seconds|limit/i.test(e.message) ? "Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo." : "Não foi possível enviar: "+e.message); }
   finally{ $("#forgotSend").disabled = false; }
 });
+async function setAuthPassword(tokenStr, email, pass){
+  try{ await sb("/auth/v1/user", {method:"PUT", token:tokenStr, body:{password: await authSecret(email, pass)}}); }
+  catch(e){ if(e.code==="same_password" || /different from the old/i.test(e.message)) return; throw e; }
+}
 async function recSession(pass){
   session = {auth:recAuth, pass};
   const u = await sb("/auth/v1/user", {token:recAuth.access});
   session.uid = u.id; session.user = (u.email||"").toLowerCase();
 }
-$("#recForm").addEventListener("submit", async e=>{
-  e.preventDefault();
+guardSubmit($("#recForm"), async e=>{
   const code = $("#recCode").value, p1 = $("#recPass").value, p2 = $("#recPass2").value;
   if(recNorm(code).length!==24) return lockErr("#recErr","A chave tem 24 letras e números, no formato XXXX-XXXX-XXXX-XXXX-XXXX-XXXX.");
   if(p1.length<8) return lockErr("#recErr","A nova senha precisa ter pelo menos 8 caracteres.");
@@ -1584,13 +1587,13 @@ $("#recForm").addEventListener("submit", async e=>{
       catch(err){ throw showErr(row.envelope.v>=4 ? "Chave de recuperação incorreta." : "Esta conta ainda não tem chave de recuperação. Sem a senha antiga, só é possível começar do zero."); }
       adopt(o); session.wrapPw = await wrapKey(session.raw, p1); session.versao = row.versao; state = blankState(o.data);
     }
-    await sb("/auth/v1/user", {method:"PUT", token:recAuth.access, body:{password: await authSecret(session.user, p1)}});
+    await setAuthPassword(recAuth.access, session.user, p1);
     $("#recCode").value = $("#recPass").value = $("#recPass2").value = "";
     if(!row){ await afterAuth(); return; }
     session.syncedIds = new Set(state.tx.map(t=>t.id));
     startApp(); save(); toast("Senha redefinida. Todos os dados foram mantidos.");
   }catch(err){
-    session = null;
+    if($("#app").hidden) session = null;
     lockErr("#recErr", err.show ? err.message : err.net ? "Sem conexão com a nuvem." : /expired|invalid|jwt/i.test(err.message) ? "A autorização expirou. Peça um novo link em “Esqueci a senha”." : "Não foi possível redefinir: "+err.message);
   }finally{ $("#recBtn").disabled = false; $("#recBtn").textContent = "Redefinir senha"; }
 });
@@ -1601,11 +1604,11 @@ armConfirm($("#recStartOver"), "Clique de novo: começar do zero", async ()=>{
   try{
     await recSession(p1);
     let row = null; try{ row = await remoteGet(); }catch(e){}
-    await sb("/auth/v1/user", {method:"PUT", token:recAuth.access, body:{password: await authSecret(session.user, p1)}});
+    await setAuthPassword(recAuth.access, session.user, p1);
     session.versao = row ? row.versao : null;
     const code = await newDek(); state = blankState({}); session.syncedIds = new Set();
     startApp(); save(); showRecoveryCode(code);
-  }catch(err){ session = null; lockErr("#recErr", err.net ? "Sem conexão com a nuvem." : "A autorização expirou. Peça um novo link em “Esqueci a senha”."); }
+  }catch(err){ if($("#app").hidden) session = null; lockErr("#recErr", err.net ? "Sem conexão com a nuvem." : "A autorização expirou. Peça um novo link em “Esqueci a senha”."); }
 });
 
 $("#pwChange").addEventListener("click", async ()=>{
@@ -1615,7 +1618,7 @@ $("#pwChange").addEventListener("click", async ()=>{
   if(n1!==n2){ toast("As novas senhas não conferem"); return; }
   if(!session.auth){ toast("Sem conexão: troque a senha quando estiver online"); return; }
   await saveChain;
-  try{ await sb("/auth/v1/user", {method:"PUT", token: await token(), body:{password: await authSecret(session.user, n1)}}); }
+  try{ await setAuthPassword(await token(), session.user, n1); }
   catch(e){ toast(e.net ? "Sem conexão: tente de novo com internet" : "Não foi possível trocar a senha: "+e.message); return; }
   session.pass = n1; session.wrapPw = await wrapKey(session.raw, n1);
   save(); await saveChain; refreshBackupCache();
