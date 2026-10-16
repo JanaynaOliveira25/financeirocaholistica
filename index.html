@@ -289,13 +289,9 @@ svg.chart .b-inc{fill:var(--inc)} svg.chart .b-exp{fill:var(--exp)} svg.chart .b
       <div class="lock-ok" id="loginOk" hidden></div>
       <div class="lock-links"><button type="button" class="linkish" id="toSetup">Primeiro acesso? Criar conta</button><button type="button" class="linkish" id="forgotBtn">Esqueci a senha</button></div>
       <div id="forgotBox" class="stack" hidden>
-        <p class="note" style="margin:0">Informe o e-mail acima e peça o código. Depois, você vai precisar da <b>chave de recuperação</b> que apareceu quando a conta foi criada. Com ela, você cria uma senha nova e mantém todos os dados.</p>
-        <button type="button" class="btn" id="forgotSend">Enviar código por e-mail</button>
+        <p class="note" style="margin:0">Informe o e-mail acima e peça o link. Depois, você vai precisar da <b>chave de recuperação</b> que apareceu quando a conta foi criada. Com ela, você cria uma senha nova e mantém todos os dados.</p>
+        <button type="button" class="btn" id="forgotSend">Enviar link por e-mail</button>
         <div class="lock-ok" id="forgotOk" hidden></div>
-        <div id="forgotCodeBox" class="stack" hidden>
-          <label class="field"><span>Código recebido por e-mail</span><input type="text" id="forgotCode" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Ex.: 123456"></label>
-          <button type="button" class="btn primary" id="forgotVerify">Confirmar código</button>
-        </div>
       </div>
     </form>
 
@@ -1563,22 +1559,9 @@ $("#forgotSend").addEventListener("click", async ()=>{
   lockErr("#loginErr",""); $("#forgotSend").disabled = true;
   try{
     await sb(`/auth/v1/recover?redirect_to=${encodeURIComponent(location.origin+location.pathname)}`, {method:"POST", body:{email}});
-    const ok=$("#forgotOk"); ok.textContent = "Se o e-mail tiver conta, a mensagem chega em instantes (confira o spam). Digite abaixo o código que veio nela."; ok.hidden=false;
-    $("#forgotCodeBox").hidden = false; $("#forgotCode").focus();
+    const ok=$("#forgotOk"); ok.textContent = "Se o e-mail tiver conta, a mensagem chega em instantes (confira o spam). Clique uma única vez no link “Reset password”: ele abre esta tela para criar a senha nova."; ok.hidden=false;
   }catch(e){ lockErr("#loginErr", e.net ? "Sem conexão com a nuvem." : /rate|seconds|limit/i.test(e.message) ? "Muitos pedidos seguidos. Aguarde alguns minutos e tente de novo." : "Não foi possível enviar: "+e.message); }
   finally{ $("#forgotSend").disabled = false; }
-});
-$("#forgotVerify").addEventListener("click", async ()=>{
-  const email = $("#loginUser").value.trim().toLowerCase(), code = $("#forgotCode").value.replace(/\D/g,"");
-  if(code.length<6){ lockErr("#loginErr","Digite o código numérico que chegou no e-mail."); return; }
-  lockErr("#loginErr",""); $("#forgotVerify").disabled = true;
-  try{
-    const d = await sb("/auth/v1/verify", {method:"POST", body:{type:"recovery", email, token:code}});
-    recAuth = {access:d.access_token, refresh:d.refresh_token, exp: d.expires_at || Math.floor(Date.now()/1000)+(d.expires_in||3600)};
-    $("#forgotCode").value = ""; $("#forgotBox").hidden = true; $("#forgotCodeBox").hidden = true; $("#forgotOk").hidden = true;
-    showLock("rec");
-  }catch(e){ lockErr("#loginErr", e.net ? "Sem conexão com a nuvem." : "Código inválido ou vencido. Peça um novo código e use o mais recente."); }
-  finally{ $("#forgotVerify").disabled = false; }
 });
 async function recSession(pass){
   session = {auth:recAuth, pass};
@@ -1608,7 +1591,7 @@ $("#recForm").addEventListener("submit", async e=>{
     startApp(); save(); toast("Senha redefinida. Todos os dados foram mantidos.");
   }catch(err){
     session = null;
-    lockErr("#recErr", err.show ? err.message : err.net ? "Sem conexão com a nuvem." : /expired|invalid|jwt/i.test(err.message) ? "A autorização expirou. Peça um novo código em “Esqueci a senha”." : "Não foi possível redefinir: "+err.message);
+    lockErr("#recErr", err.show ? err.message : err.net ? "Sem conexão com a nuvem." : /expired|invalid|jwt/i.test(err.message) ? "A autorização expirou. Peça um novo link em “Esqueci a senha”." : "Não foi possível redefinir: "+err.message);
   }finally{ $("#recBtn").disabled = false; $("#recBtn").textContent = "Redefinir senha"; }
 });
 $("#recNoKey").addEventListener("click", ()=>{ $("#recNoKeyBox").hidden = !$("#recNoKeyBox").hidden; });
@@ -1622,7 +1605,7 @@ armConfirm($("#recStartOver"), "Clique de novo: começar do zero", async ()=>{
     session.versao = row ? row.versao : null;
     const code = await newDek(); state = blankState({}); session.syncedIds = new Set();
     startApp(); save(); showRecoveryCode(code);
-  }catch(err){ session = null; lockErr("#recErr", err.net ? "Sem conexão com a nuvem." : "A autorização expirou. Peça um novo código em “Esqueci a senha”."); }
+  }catch(err){ session = null; lockErr("#recErr", err.net ? "Sem conexão com a nuvem." : "A autorização expirou. Peça um novo link em “Esqueci a senha”."); }
 });
 
 $("#pwChange").addEventListener("click", async ()=>{
@@ -1670,7 +1653,7 @@ else {
     clean(); showLock("rec");
   } else if(H.get("error") || H.get("error_code")){
     clean(); showLock("login");
-    lockErr("#loginErr", H.get("error_code")==="otp_expired" ? "O link de redefinição expirou ou já foi usado. Peça um novo código em “Esqueci a senha” e digite o código do e-mail." : "Não foi possível usar o link: "+(H.get("error_description")||"erro desconhecido").replace(/\+/g," "));
+    lockErr("#loginErr", H.get("error_code")==="otp_expired" ? "O link de redefinição expirou ou já foi usado. Peça um novo em “Esqueci a senha” e clique só no e-mail mais recente." : "Não foi possível usar o link: "+(H.get("error_description")||"erro desconhecido").replace(/\+/g," "));
   } else showLock("login");
 }
 })();
