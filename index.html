@@ -132,7 +132,8 @@ section.view{display:grid;gap:20px;padding-top:24px}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
 .btn.danger{color:var(--crit);border-color:var(--crit)}
 .btn.sm{padding:5px 10px;font-size:.8rem}
-.field{display:grid;gap:5px;min-width:0}
+.field{display:grid;grid-template-columns:minmax(0,1fr);gap:5px;min-width:0}
+.field input,.field select{min-width:0;max-width:100%}
 .field > span{font-size:.78rem;font-weight:600;color:var(--ink-2)}
 input[type=text],input[type=date],input[type=month],input[type=search],select,textarea{
   width:100%;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:40px}
@@ -158,11 +159,13 @@ input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;
 .quick-msg b{font-weight:600}
 .quick-msg .miss{color:var(--warn);font-weight:600}
 form.entry{display:grid;gap:14px}
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .form-actions{display:flex;gap:8px;flex-wrap:wrap}
 .editing-flag{font-size:.8rem;background:var(--warn-soft);color:var(--warn);padding:6px 10px;border-radius:6px;font-weight:600}
 
-.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+@media (max-width:1180px){.filters{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (max-width:480px){.filters{grid-template-columns:1fr!important}}
+.filters{display:grid;grid-template-columns:minmax(0,1.25fr) repeat(2,minmax(0,1fr)) minmax(0,1.2fr);gap:10px;margin-bottom:14px}
 .list-sum{display:flex;gap:18px;flex-wrap:wrap;font-size:.85rem;margin-bottom:10px}
 .list-sum b{font-weight:700}
 .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
